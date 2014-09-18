@@ -1,173 +1,300 @@
 
-    // your code here
     var config;
     var baseUrl = 'http://api.themoviedb.org/3/';
-    var apiKey = '0b1c30459eac1e2bbf48dbd4f72830fa';
+    var api_key = '52330cd572ac45cc5d00091b9b0c73e6';
 
 
-    function initialize(callback) {
-        $.get(baseUrl + 'configuration', {
-            api_key: '0b1c30459eac1e2bbf48dbd4f72830fa'
-        },function(res) {
-            config = res;
-            console.log(config);
-            callback(config);
-        });
+    function initialize(callback){
+        console.log('initializing..');
+        
+        // setting required parameters of get request for configuration
+        var configUrl = baseUrl+'configuration';
+        var configParams = {
+            api_key : api_key
+        }
+        var configResponse = function(response){
+            config = response;
+            callback(config);    
+        }
+
+        // get request for configuration (JSON object)
+        $.get(configUrl , configParams, configResponse);
     }
+    function setEventHandlers(config){
+        
+        console.log('setting event handlers..');
+        function clearActive(){
+            $(".navbar-nav > .active").removeClass('active');
+        }
 
-    function setEventHandlers(config) {
-        $('#form-search').submit(function() {
-            var query = $('.input-query').val();
-            searchMovie(query);
-            return  false;
+        // fetching DOM of search form for handling event query when submitted.
+        $('#form-search').submit(function(){
+            searchMovie($('#search-query').val());    // passing query to searchMovie function.
+            $(".movie-view").hide();
+            $(".movie-list").show();
+            return false;                             // return false after searchMovie, to search movies without loading the webpage.     
         });
 
-        $('.btn-now-showing').click(function() {
+        $('#now_showing').click(function(){
+            clearActive();
+            $(this).parent().addClass("active");
+            $(".movie-view").hide();
+            $(".movie-list").show();
             loadNowShowing();
+            return false;
         });
 
-        loadNowShowing();
-
-        $('.btn-up-coming').click(function() {
-            upcoming();
-            
+        $('#latest').click(function(){
+            clearActive();
+            $(this).parent().addClass("active");
+            $(".movie-view").hide();
+            $(".movie-list").show();
+            loadLatest();
+            return false;
         });
 
-        upcoming();
-
-        $('.btn-popular').click(function() {
-            popular();
-            
+        $('#upcoming').click(function(){
+            clearActive();
+            $(this).parent().addClass("active");
+            $(".movie-view").html('');
+            $(".movie-list").show();
+            loadUpcoming();
+            return false;
         });
 
-        popular();
-
-        $('.btn-top-rated').click(function() {
-            toprated();
-            
+        $('#popular').click(function(){
+            clearActive();
+            $(this).parent().addClass("active");
+            loadPopular();
+            return false;
         });
 
-        toprated();
+        $('#top_rated').click(function(){
+            clearActive();
+            $(this).parent().addClass("active");
+            $(".movie-view").hide();
+            $(".movie-list").show();
+            loadTopRated();
+            return false;
+        });
     }
-    function searchMovie(query) {
-        var searchUrl = baseUrl + 'search/movie';
-        $('.movies-list').html('');
-        $.get(searchUrl, {
-            query: query,
-            api_key: apiKey
-        }, function(response) {
-            displayMovies(response);
-        });
+
+    function searchMovie(query){
+        
+        console.log('searching..');
+
+        // setting required parameters of get request for search
+        var searchUrl = baseUrl+'search/movie';
+        var searchParams = {
+            api_key: api_key,
+            query: query
+        };
+        var searchResponse = function(response){ 
+            displayMovies(response, "Search &quot;"+query+"&quot; : "+response.total_results+" results found."); 
+        }; // pass data response to displayMovie function to display Movies in the page.
+
+        // get request for searching movies (JSON object)
+        $.get(searchUrl, searchParams, searchResponse);
     }
-    function displayMovies(data) {
-        data.results.forEach(function(movie) {
-            var imageSrc = config.images.base_url + config.images.poster_sizes[1] + movie.poster_path;
-            var htmlStr = [
-                            '<div class="col-md-4 portfolio-item">',
-                                '<a href="/view/'+movie.id+'">',
-                                    '<img class="img-responsive" src="' + imageSrc + '" alt="">',
-                                '</a>',
-                                '<h9>',
-                                    '<a href="/view/'+movie.id+'">' + movie.title +'</a>',
-                                '</h9>',
+    
+    function displayMovies(data,category){
+        $('.movie-list').html('');
+        console.log('displaying movies..');
+        console.log('\n\n\n')
+        if(data.results.length > 0){
+            var headerStr = [
+                            '<div class="col-lg-12">',
+                                '<h1 class="page-header">'+category+'</h1>',
                             '</div>'
-                            ];
-            $('.movies-list').append($(htmlStr.join('')));
-        });
-    }
+                        ];
+            $('.movie-list').append($(headerStr.join('')));
+            data.results.forEach(function(movie){
+                
+                function getCasts(id){
+                    var strcasts;
+                    $.get(baseUrl+"movie/"+id+"/credits",{"api_key":api_key}, function(response){
+                        for(var i = 0; i<3;i++){   
+                            strcasts+=( (i==2) ? response.cast[i].name : response.cast[i].name+",");
+                        }
+                        return strcasts;     
+                    });
+                }
+                var poster = config.images.base_url + config.images.poster_sizes[0] + movie.poster_path;
+                var backdrop = config.images.base_url + config.images.poster_sizes[3] + movie.backdrop_path; 
+                var id = movie.id;
+                var title = movie.title;
+                var casts = getCasts(id);
+                
+                var values = {
+                    "poster":poster,
+                    "backdrop":backdrop,
+                    "casts":casts,
+                    "id":id,
+                    "title":title
+                }
 
-    function loadNowShowing() {
-        var nowShowingUrl = baseUrl + 'movie/now_playing';
-        $('.movies-list').html('');
-        $.get(nowShowingUrl, {
-            api_key: apiKey
-        }, function(response) {
-            displayMovies(response);
-        });
-    }
+                var markup = Handlebars.compile($("#tpl-listmovies").html())(values);
+                $('.movie-list').append(markup);
+                //try{
+                //    writeTemplate("tpl-listmovies",movie,"movie-list");
+                //}
+                //catch(err){
+
+                //}
+                
+               // var htmlStr = [
+               //                  '<div class="col-lg-3 col-md-4 col-xs-6 thumb">',
+               //                      '<a class="thumbnail" href="/movie/'+movie.id+'">',
+               //                          '<img class="img-responsive" height="200px" src="'+poster+'" alt="">',
+               //                      '</a>',
+               //                      '<center><h4 style="text-align:center; width:140px; word-wrap: break-word;">',
+               //                          '<a href="/movie/'+movie.id+'">'+movie.title+'</a>',
+               //                      '</h4></center>',
+               //                  '</div>'
+               //              ];
+               // $('.movie-list').append($(htmlStr.join('')));
+            });
     
+        /*
+            var pagination = [
+            '<div class="row text-center">',
+                '<div class="col-lg-12">',  
+                    '<ul class="pagination">',
+                        '<li>',
+                            '<a href="#">«</a>',
+                        '</li>',
+                        '<li>',
+                            '<a href="#">»</a>',
+                        '</li>',
+                    '</ul>',
+                '</div>',
+            '</div>'
+                        ];
+            for(var i=data.total_pages; i>0 ; i--){
+                pagination.splice(5,0,
+                    '<li>',
+                        '<a href="#">'+i+'</a>',
+                    '</li>');
+            }
 
-    function upcoming() {
-        var upcomingUrl = baseUrl + 'movie/upcoming';
-        $('.movies-list').html('');
-        $.get(upcomingUrl, {
-            api_key: apiKey
-        }, function(response) {
-            displayMovies(response);
-        });
+            $('.movie-list').append($(pagination.join('')));          
+        */
+        }
+        else{
+            var htmlStr = [
+                    '<h3>',
+                        'No Results Found.',
+                    '</h3>'
+            ];
+            $('.movie-list').append($(htmlStr.join('')));
+        }
     }
-    
 
-    function popular() {
-        var popularUrl = baseUrl + 'movie/popular';
-        $('.movies-list').html('');
-        $.get(popularUrl, {
-            api_key: apiKey
-        }, function(response) {
-            displayMovies(response);
-        });
+    function loadNowShowing(){
+        $.get(
+            baseUrl+'movie/now_playing',
+            {
+                api_key:api_key
+            },
+            function(response){
+                displayMovies(response,"Now Showing");
+            }
+        );
     }
 
-    function toprated() {
-        var topratedUrl = baseUrl + 'movie/top-rated';
-        $('.movies-list').html('');
-        $.get(topratedUrl, {
-            api_key: apiKey
-        }, function(response) {
-            displayMovies(response);
-        });
+    function loadUpcoming(){
+        $.get(
+            baseUrl+'movie/upcoming',
+            {
+                api_key:api_key
+            },
+            function(response){
+                displayMovies(response, "Upcoming");
+            }
+        );   
     }
-    
-    
 
-    function viewMovie(id){
-    $(".movie-list").hide();
-    console.log(id);
+    function loadPopular(){
+        $.get(
+            baseUrl+'movie/popular',
+            {
+                api_key:api_key
+            },
+            function(response){
+                displayMovies(response, "Popular");
+            }
+        );
+    }
+
+    function loadTopRated(){
+        $.get(
+            baseUrl+'movie/top_rated',
+            {
+                api_key:api_key
+            },
+            function(response){
+                displayMovies(response, "Top Rated");
+            }
+        );
+    }
+
+
+    initialize(setEventHandlers);
+
+
+
+
+function movieView(id){
+    
+    $("movie-list").hide();
+
+
     url = baseUrl + "movie/"+id;
-    reqParam = {api_key:apiKey};
+    reqParam = {api_key:api_key};
     $.get(url,reqParam,function(response){
         $("#title").html(response.original_title);
         $("#overview").html(response.overview);
 
         url = baseUrl + "movie/"+id+"/videos";
         $.get(url,reqParam,function(response){
-            var html = '<embed width="500" height="400" src="https://www.youtube.com/v/'+response.results[0].key+'" type="application/x-shockwave-flash">'
-            $("#trailer").html(html);
+            response.key = response.results[0].key;
+            writeTemplate("tpl-trailer",response,"trailer");
         });
 
         url = baseUrl + "movie/"+id+"/credits";
         $.get(url,reqParam,function(response){
-            var casts = "";
+            var profile = "";
             for(var i=0;i<response.cast.length;i++){
-                casts+= (i!=response.cast.length-1)?response.cast[i].name+", "
-                    : " and "+response.cast[i].name;
+                //casts+="<li>"+response.cast[i].name+"</li>"
+                profile = config.images.base_url + config.images.poster_sizes[0] + response.cast[i].profile_path;
+                response.cast[i].profile = profile;
             }
-            $("#casts").html(casts);
+            writeTemplate("tpl-casts",response,"casts");
+
         });
 
         url = baseUrl + "movie/"+id+"/similar";
         $.get(url,reqParam,function(response){
-            var movies = response.results;
-            var allMovies = "";
-            for(var i=0;i<movies.length;i++){
-                allMovies += (i==movies.length-1)? '<a href="/movie/'+movies[i].id+'">'+movies[i].title+'</a>, '
-                    : '<a href="/movie/'+movies[i].id+'">'+movies[i].title+'</a>';
-            }
-            $("#similar").html(allMovies);
+            var poster = "";
+            for(var i=0;i<response.results.length;i++){
+                poster = config.images.base_url + config.images.poster_sizes[1] + response.results[i].poster_path;
+                 response.results[i].poster = poster;
+
+            }   
+            writeTemplate("tpl-similar",response,"similar");
         });
 
     });
+
+function writeTemplate(sourceID,values,outputID){
+        var html = getTemplate(sourceID,values)
+
+        $("#"+outputID).html(html);
+    }
+    function getTemplate(sourceID,values){
+        var source   = $("#"+sourceID).html();
+        var template = Handlebars.compile(source);  
+        var html = template(values);
+        return html;
+    }
 }
-$(document).ready(function(){
-
-    $(".btn-top-rated, .btn-popular, .btn-up-coming, .btn-now-showing").click(function(){
-        $(".movie-view").hide();
-        $(".movies-list").show();
-    });
-    initialize(setEventHandlers);
-});
-
-
-
-
-

@@ -22,7 +22,29 @@
             </div>
         </a>
       </script>
+      <script type="text/x-handlebars-template" id="tpl-trailer">  
+        <embed width="750" height="500" src="https://www.youtube.com/v/{{key}}" type="application/x-shockwave-flash">
+      </script>
+      <script type="text/x-handlebars-template" id="tpl-casts">
+        {{#each this.cast}}
+            <li><img class="img-responsive" src="{{profile}}"><span>{{name}}</span></li>
+        {{/each}}
+      </script>
+      <script type="text/x-handlebars-template" id="tpl-similar">
+        {{#each this.results}}
+        <div class="col-sm-3 col-xs-6">
+            <a href="/movie/{{id}}">
+                <img class="img-responsive portfolio-item" src="{{poster}}" alt="">
+            </a>
+            <h5>
+                <a href="/movie/{{id}}">{{title}}</a>
+            </h5>
+        </div>
+        {{/each}}
+      
+      </script>
     {% endraw %}
+
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container">
         <div class="navbar-header">
@@ -51,20 +73,76 @@
         </div><!--/.nav-collapse -->
       </div>
     </div>
-
     <div class="container" style='top: 70px; position: relative;'>
-        <div class="movie-list">
+        <div class="movie-view">
+            <!-- Portfolio Item Heading -->
+            <div class="row">
+                <div class="col-lg-12">
+
+                    <h1 class="page-header" id="title">
+                    </h1>
+                </div>
+            </div>
+            <!-- /.row -->
+
+            <!-- Portfolio Item Row -->
+            <div class="row">
+
+                <div class="col-md-8" id="trailer">
+                    
+                </div>
+
+                <div class="col-md-4">
+                    <h3>Synopsis</h3>
+                    <p id="overview"></p>
+                    <h3>Casts</h3>
+                    <ul id="casts">
+                    </ul>
+                </div>
+
+            </div>
+            <!-- /.row -->
+
+            <!-- Related Projects Row -->
+            <div class="row">
+
+                <div class="col-lg-12">
+                    <h3 class="page-header">Similar Movies</h3>
+                </div>
+
+                <div id="similar"></div>
+
+            </div>
+            <!-- /.row -->
+
+            <hr>
+
+            <!-- Footer -->
+            <footer>
+                <div class="row">
+                    <div class="col-lg-12">
+                        <p>Copyright © Team 2 | Advance Web Computing | PUP-CpE batch 2014</p>
+                    </div>
+                </div>
+                <!-- /.row -->
+            </footer>
+        </div>
+        <div class="movie-list" style="display:none">
         </div>
     </div><!-- /.container -->
 
-    <script type="text/javascript" src="/static/js/vendors/jquery.js"></script>
+    <script src="/static/js/vendors/jquery.js"></script>
     <script type="text/javascript" src="/static/js/vendors/handlebars.js"></script>
     <script src="/static/js/vendors/bootstrap.min.js"></script>
     <script src="/static/js/app.js"></script>
     <script type="text/javascript">
-      loadNowShowing();
-      initialize(setEventHandlers);
+        initialize(setEventHandlers);
+        console.log($("#tpl-trailer"));
+        console.log($("#tpl-casts"));
+        console.log($("#tpl-similar"));
+        movieView("{{id}}");
     </script>
+
 </body>
 
 </html>
